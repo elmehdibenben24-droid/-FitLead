@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProFit - Smart Macro Calculator</title>
-    <!-- استدعاء خطوط احترافية -->
+    <title>FitLead - Smart Macro Calculator</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0ea5e9; /* لون قابل للتغيير حسب هوية الصالة */
+            --primary: #0ea5e9; 
             --primary-hover: #0284c7;
             --bg-color: #0f172a;
             --surface: rgba(30, 41, 59, 0.7);
@@ -29,7 +28,6 @@
             padding: 20px;
         }
 
-        /* تصميم تأثير الزجاج */
         .glass-widget {
             background: var(--surface);
             backdrop-filter: blur(16px);
@@ -40,10 +38,9 @@
             width: 100%;
             max-width: 450px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            transition: all 0.3s ease;
+            position: relative;
         }
 
-        /* مبدل اللغات */
         .lang-switch {
             display: flex;
             justify-content: center;
@@ -85,9 +82,267 @@
             color: white;
             font-size: 1em;
             font-family: inherit;
-            transition: border 0.3s;
             outline: none;
         }
+
+        input:focus, select:focus { border-color: var(--primary); }
+
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+            font-family: inherit;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-calc:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        .hidden { display: none !important; }
+
+        /* نافذة جمع الرقم (Lead Modal) */
+        .lead-modal {
+            display: none; 
+            background: var(--bg-color);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .lead-modal h3 { color: var(--primary); margin-bottom: 10px; }
+        .lead-modal p { font-size: 0.9em; color: var(--text-muted); margin-bottom: 20px; }
+        
+        .results-container {
+            display: none;
+            margin-top: 25px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .cal-box {
+            text-align: center;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .cal-box span { font-size: 2.2em; font-weight: 700; color: var(--primary); display: block; line-height: 1.2; }
+        
+        .macros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .macro-card { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 15px 10px; text-align: center; }
+        .macro-card span { display: block; font-size: 1.3em; font-weight: 700; margin-top: 5px; }
+        .m-pro { color: #f43f5e; } .m-carb { color: #eab308; } .m-fat { color: #10b981; }
+
+    </style>
+</head>
+<body>
+
+<div class="glass-widget">
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ar')">العربية</button>
+        <button class="lang-btn" onclick="setLang('fr')">Français</button>
+        <button class="lang-btn" onclick="setLang('en')">English</button>
+    </div>
+
+    <h2 data-i18n="title">حاسبة الماكروز الذكية</h2>
+
+    <div id="calculator-form">
+        <div class="input-group">
+            <label data-i18n="gender">الجنس</label>
+            <select id="gender">
+                <option value="male" data-i18n="male">ذكر</option>
+                <option value="female" data-i18n="female">أنثى</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label data-i18n="age">العمر (سنوات)</label>
+            <input type="number" id="age" placeholder="25" required>
+        </div>
+
+        <div class="input-group">
+            <label data-i18n="weight">الوزن (kg)</label>
+            <input type="number" id="weight" placeholder="75" required>
+        </div>
+
+        <div class="input-group">
+            <label data-i18n="height">الطول (cm)</label>
+            <input type="number" id="height" placeholder="175" required>
+        </div>
+
+        <div class="input-group">
+            <label data-i18n="goal">الهدف</label>
+            <select id="goal">
+                <option value="lose" data-i18n="lose">خسارة الدهون</option>
+                <option value="maintain" data-i18n="maintain">الحفاظ على الوزن</option>
+                <option value="gain" data-i18n="gain">بناء العضلات</option>
+            </select>
+        </div>
+
+        <!-- الزر يفتح نافذة جمع الرقم بدل إظهار النتائج -->
+        <button class="btn-calc" onclick="showLeadForm()" data-i18n="calcBtn">احسب احتياجي</button>
+    </div>
+
+    <!-- نافذة جمع رقم الهاتف (مخفية في البداية) -->
+    <div class="lead-modal" id="leadForm">
+        <h3 data-i18n="almostThere">خطوة أخيرة!</h3>
+        <p data-i18n="enterPhoneText">أدخل رقم الواتساب الخاص بك لإظهار نتيجتك الدقيقة وإرسال نصائح مخصصة.</p>
+        
+        <div class="input-group">
+            <input type="tel" id="userPhone" placeholder="06XXXXXXXX" required>
+        </div>
+        
+        <button class="btn-calc" onclick="submitLead()" data-i18n="showResultBtn">أظهر النتيجة</button>
+    </div>
+
+    <!-- نافذة النتائج (مخفية حتى يتم إدخال الرقم) -->
+    <div class="results-container" id="results">
+        <div class="cal-box">
+            <div data-i18n="dailyCals">السعرات اليومية</div>
+            <span id="res-cal">0</span>
+        </div>
+        
+        <div class="macros-grid">
+            <div class="macro-card">
+                <div data-i18n="protein">بروتين</div>
+                <span class="m-pro" id="res-pro">0g</span>
+            </div>
+            <div class="macro-card">
+                <div data-i18n="carbs">كارب</div>
+                <span class="m-carb" id="res-carb">0g</span>
+            </div>
+            <div class="macro-card">
+                <div data-i18n="fats">دهون</div>
+                <span class="m-fat" id="res-fat">0g</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const translations = {
+        ar: {
+            title: "حاسبة الماكروز الذكية", gender: "الجنس", male: "ذكر", female: "أنثى",
+            age: "العمر (سنوات)", weight: "الوزن (kg)", height: "الطول (cm)", goal: "الهدف",
+            lose: "خسارة الدهون", maintain: "الحفاظ على الوزن", gain: "بناء العضلات",
+            calcBtn: "احسب احتياجي", dailyCals: "السعرات الحرارية اليومية",
+            protein: "بروتين", carbs: "كارب", fats: "دهون", error: "المرجو إدخال جميع البيانات!",
+            almostThere: "خطوة أخيرة!", enterPhoneText: "أدخل رقم الواتساب لإظهار نتيجتك وإرسال نصائح مخصصة.",
+            showResultBtn: "أظهر النتيجة", phoneError: "المرجو إدخال رقم هاتف صحيح."
+        },
+        fr: {
+            title: "Calculateur de Macros", gender: "Genre", male: "Homme", female: "Femme",
+            age: "Âge (ans)", weight: "Poids (kg)", height: "Taille (cm)", goal: "Objectif",
+            lose: "Perte de graisse", maintain: "Maintien du poids", gain: "Prise de masse",
+            calcBtn: "Calculer", dailyCals: "Calories Journalières",
+            protein: "Protéines", carbs: "Glucides", fats: "Lipides", error: "Veuillez remplir tous les champs !",
+            almostThere: "Dernière étape !", enterPhoneText: "Entrez votre numéro WhatsApp pour voir vos résultats.",
+            showResultBtn: "Voir le résultat", phoneError: "Veuillez entrer un numéro valide."
+        },
+        en: {
+            title: "Smart Macro Calculator", gender: "Gender", male: "Male", female: "Female",
+            age: "Age (years)", weight: "Weight (kg)", height: "Height (cm)", goal: "Goal",
+            lose: "Fat Loss", maintain: "Maintain Weight", gain: "Muscle Gain",
+            calcBtn: "Calculate Now", dailyCals: "Daily Calories",
+            protein: "Protein", carbs: "Carbs", fats: "Fats", error: "Please fill in all fields!",
+            almostThere: "Almost there!", enterPhoneText: "Enter your WhatsApp number to reveal your results.",
+            showResultBtn: "Show Results", phoneError: "Please enter a valid phone number."
+        }
+    };
+
+    let currentLang = 'ar';
+    let tempResults = {}; // لتخزين النتائج مؤقتاً قبل إدخال الرقم
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.fontFamily = lang === 'ar' ? "'Cairo', sans-serif" : "'Poppins', sans-serif";
+
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (translations[lang][key]) element.innerText = translations[lang][key];
+        });
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.innerText.toLowerCase().startsWith(lang.substring(0,2))) btn.classList.add('active');
+        });
+    }
+
+    // المرحلة الأولى: التحقق من البيانات وإظهار نافذة جمع الرقم
+    function showLeadForm() {
+        const gender = document.getElementById('gender').value;
+        const age = parseFloat(document.getElementById('age').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const goal = document.getElementById('goal').value;
+
+        if(!age || !weight || !height) {
+            alert(translations[currentLang].error);
+            return;
+        }
+
+        // حساب النتائج وتخزينها
+        let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+        bmr += (gender === 'male') ? 5 : -161;
+        let tdee = bmr * 1.55; 
+        if(goal === 'lose') tdee -= 500;
+        if(goal === 'gain') tdee += 500;
+
+        tempResults = {
+            cals: Math.round(tdee),
+            pro: Math.round((tdee * 0.30) / 4),
+            carb: Math.round((tdee * 0.50) / 4),
+            fat: Math.round((tdee * 0.20) / 9)
+        };
+
+        // إخفاء زر الحساب وإظهار نافذة الرقم
+        document.getElementById('calculator-form').style.display = 'none';
+        document.getElementById('leadForm').style.display = 'block';
+    }
+
+    // المرحلة الثانية: استلام الرقم وإظهار النتائج النهائية
+    function submitLead() {
+        const phone = document.getElementById('userPhone').value;
+        
+        if(!phone || phone.length < 8) {
+            alert(translations[currentLang].phoneError);
+            return;
+        }
+
+        /* 
+         * هنا يتم إرسال الرقم (phone) إلى قاعدة بياناتك أو إيميلك
+         * في بيئة حقيقية، يمكنك ربط هذا القسم مع Google Sheets أو Make.com
+         * مثال: sendDataToWebhook(phone, tempResults);
+         */
+        console.log("New Lead Captured:", phone, "Results:", tempResults);
+
+        // إخفاء نافذة الرقم وعرض النتائج
+        document.getElementById('leadForm').style.display = 'none';
+        
+        document.getElementById('res-cal').innerText = tempResults.cals;
+        document.getElementById('res-pro').innerText = tempResults.pro + 'g';
+        document.getElementById('res-carb').innerText = tempResults.carb + 'g';
+        document.getElementById('res-fat').innerText = tempResults.fat + 'g';
+        
+        document.getElementById('results').style.display = 'block';
+    }
+</script>
+</body>
+</html>
 
         input:focus, select:focus { border-color: var(--primary); }
 
