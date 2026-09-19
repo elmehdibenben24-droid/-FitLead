@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProFit - Smart Macro Calculator</title>
+    <!-- استدعاء خطوط احترافية -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9; /* لون قابل للتغيير حسب هوية الصالة */
+            --primary-hover: #0284c7;
+            --bg-color: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Cairo', 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color), #1e293b);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* تصميم تأثير الزجاج */
+        .glass-widget {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 35px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        /* مبدل اللغات */
+        .lang-switch {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        .lang-btn:hover, .lang-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        h2 { text-align: center; margin-bottom: 25px; font-weight: 700; font-size: 1.6em; }
+        
+        .input-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9em; font-weight: 600; color: var(--text-muted); }
+        
+        input, select {
+            width: 100%;
+            padding: 14px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border 0.3s;
+            outline: none;
+        }
+
+        input:focus, select:focus { border-color: var(--primary); }
+
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+            font-family: inherit;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-calc:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        /* منطقة النتائج */
+        .results-container {
+            display: none;
+            margin-top: 25px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .cal-box {
+            text-align: center;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .cal-box span { font-size: 2.2em; font-weight: 700; color: var(--primary); display: block; line-height: 1.2; }
+
+        .macros-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .macro-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+        }
+
+        .macro-card span { display: block; font-size: 1.3em; font-weight: 700; margin-top: 5px; }
+        .m-pro { color: #f43f5e; }
+        .m-carb { color: #eab308; }
+        .m-fat { color: #10b981; }
+
+    </style>
+</head>
+<body>
+
+<div class="glass-widget">
+    <!-- مبدل اللغات -->
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ar')">العربية</button>
+        <button class="lang-btn" onclick="setLang('fr')">Français</button>
+        <button class="lang-btn" onclick="setLang('en')">English</button>
+    </div>
+
+    <h2 data-i18n="title">حاسبة الماكروز الذكية</h2>
+
+    <div class="input-group">
+        <label data-i18n="gender">الجنس</label>
+        <select id="gender">
+            <option value="male" data-i18n="male">ذكر</option>
+            <option value="female" data-i18n="female">أنثى</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label data-i18n="age">العمر (سنوات)</label>
+        <input type="number" id="age" placeholder="25" required>
+    </div>
+
+    <div class="input-group">
+        <label data-i18n="weight">الوزن (kg)</label>
+        <input type="number" id="weight" placeholder="75" required>
+    </div>
+
+    <div class="input-group">
+        <label data-i18n="height">الطول (cm)</label>
+        <input type="number" id="height" placeholder="175" required>
+    </div>
+
+    <div class="input-group">
+        <label data-i18n="goal">الهدف</label>
+        <select id="goal">
+            <option value="lose" data-i18n="lose">خسارة الدهون</option>
+            <option value="maintain" data-i18n="maintain">الحفاظ على الوزن</option>
+            <option value="gain" data-i18n="gain">بناء العضلات</option>
+        </select>
+    </div>
+
+    <button class="btn-calc" onclick="calculate()" data-i18n="calcBtn">احسب احتياجي</button>
+
+    <div class="results-container" id="results">
+        <div class="cal-box">
+            <div data-i18n="dailyCals">السعرات اليومية</div>
+            <span id="res-cal">0</span>
+        </div>
+        
+        <div class="macros-grid">
+            <div class="macro-card">
+                <div data-i18n="protein">بروتين</div>
+                <span class="m-pro" id="res-pro">0g</span>
+            </div>
+            <div class="macro-card">
+                <div data-i18n="carbs">كارب</div>
+                <span class="m-carb" id="res-carb">0g</span>
+            </div>
+            <div class="macro-card">
+                <div data-i18n="fats">دهون</div>
+                <span class="m-fat" id="res-fat">0g</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // قاموس الترجمة الشامل
+    const translations = {
+        ar: {
+            title: "حاسبة الماكروز الذكية", gender: "الجنس", male: "ذكر", female: "أنثى",
+            age: "العمر (سنوات)", weight: "الوزن (kg)", height: "الطول (cm)", goal: "الهدف",
+            lose: "خسارة الدهون", maintain: "الحفاظ على الوزن", gain: "بناء العضلات",
+            calcBtn: "احسب احتياجي", dailyCals: "السعرات الحرارية اليومية",
+            protein: "بروتين", carbs: "كارب", fats: "دهون", error: "المرجو إدخال جميع البيانات!"
+        },
+        fr: {
+            title: "Calculateur de Macros", gender: "Genre", male: "Homme", female: "Femme",
+            age: "Âge (ans)", weight: "Poids (kg)", height: "Taille (cm)", goal: "Objectif",
+            lose: "Perte de graisse", maintain: "Maintien du poids", gain: "Prise de masse",
+            calcBtn: "Calculer", dailyCals: "Calories Journalières",
+            protein: "Protéines", carbs: "Glucides", fats: "Lipides", error: "Veuillez remplir tous les champs !"
+        },
+        en: {
+            title: "Smart Macro Calculator", gender: "Gender", male: "Male", female: "Female",
+            age: "Age (years)", weight: "Weight (kg)", height: "Height (cm)", goal: "Goal",
+            lose: "Fat Loss", maintain: "Maintain Weight", gain: "Muscle Gain",
+            calcBtn: "Calculate Now", dailyCals: "Daily Calories",
+            protein: "Protein", carbs: "Carbs", fats: "Fats", error: "Please fill in all fields!"
+        }
+    };
+
+    let currentLang = 'ar';
+
+    // دالة تغيير اللغة
+    function setLang(lang) {
+        currentLang = lang;
+        
+        // تغيير اتجاه الصفحة ونوع الخط
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.fontFamily = lang === 'ar' ? "'Cairo', sans-serif" : "'Poppins', sans-serif";
+
+        // تحديث النصوص
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                element.innerText = translations[lang][key];
+            }
+        });
+
+        // تحديث حالة الأزرار
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.innerText.toLowerCase().startsWith(lang.substring(0,2))) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // دالة الحساب
+    function calculate() {
+        const gender = document.getElementById('gender').value;
+        const age = parseFloat(document.getElementById('age').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const goal = document.getElementById('goal').value;
+
+        if(!age || !weight || !height) {
+            alert(translations[currentLang].error);
+            return;
+        }
+
+        // معادلة Mifflin-St Jeor
+        let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+        bmr += (gender === 'male') ? 5 : -161;
+
+        let tdee = bmr * 1.55; // نشاط متوسط
+
+        if(goal === 'lose') tdee -= 500;
+        if(goal === 'gain') tdee += 500;
+
+        const protein = (tdee * 0.30) / 4;
+        const carbs = (tdee * 0.50) / 4;
+        const fats = (tdee * 0.20) / 9;
+
+        // عرض النتائج
+        document.getElementById('res-cal').innerText = Math.round(tdee);
+        document.getElementById('res-pro').innerText = Math.round(protein) + 'g';
+        document.getElementById('res-carb').innerText = Math.round(carbs) + 'g';
+        document.getElementById('res-fat').innerText = Math.round(fats) + 'g';
+        
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.style.display = 'block';
+        
+        // إعادة تشغيل الحركة (Animation)
+        resultsDiv.style.animation = 'none';
+        resultsDiv.offsetHeight; /* Trigger reflow */
+        resultsDiv.style.animation = 'fadeIn 0.5s ease';
+    }
+</script>
+</body>
+</html>
+
